@@ -8,6 +8,7 @@ import numpy as np
 df_prices = stocks_brazil()
 
 
+
 # Calculando sinal de momentum a partir do dataframe com precos
 df_signal = get_momentum_signal(df = df_prices, window = 180, percentile = 0.25)
 
@@ -16,7 +17,7 @@ df_weights = get_weights_one_over_n(df_signal)
 
 
 # Definindo frequencia do rebelanceamento d -> diaria, w -> semanal, m -> mensal, y -> anual
-freq = "d"
+freq = "m"
 dict_freq = {
             "d": ["d", "w", "m", "y"],
             "w": ["w", "m", "y"],
@@ -49,6 +50,7 @@ initial_value = value
 new_value = 0
 dict_value = {}
 list_signal = []
+
 for index in df_prices_period.index[1:]:
 
     df_temp = df_prices[df_prices.index <= index] # df temporario com precos para usarmos para computar os sinais
@@ -56,13 +58,14 @@ for index in df_prices_period.index[1:]:
     df_weights = get_weights_one_over_n(df_signal.tail(1)) # computando pesos (usaremos aqui qualquer funcao, podendo ser risk parity, hierarchical risk parity, vol weighted
     df_notional = df_weights[df_weights.index == index] * initial_value # financeiro no tempo t
     df_qty = df_notional / df_prices[df_prices.index == index] # quantidade do papel que devemos ter em cada tempo t
-    df_notional_end_of_period = df_notional * (1 + df_return_period[df_return_period.index == index])
-    new_value = df_notional_end_of_period.sum(axis=1)[0] # novo financeiro apos o fim do periodo antes de rebalancear
+    df_notional_end_of_period_delta = df_notional * (df_return_period[df_return_period.index == index])
+    new_value = df_notional_end_of_period_delta.sum(axis=1)[0] # novo financeiro apos o fim do periodo antes de rebalancear
     initial_value += new_value # novo financeiro
     dict_value[index] = initial_value # salvando novo finaceiro da estrategia
     df_signal_t = df_signal[df_signal.index == index] # salvando o sinal para o tempo t
     list_signal.append(df_signal_t)
     print(index)
+
 
 
 
