@@ -9,7 +9,7 @@ def rebalance(current_total_aum = None, df_new_weights = None, df_prices_d0 = No
 
 
     df_new_notional = df_new_weights * current_total_aum
-    df_dif_notional = df_new_notional - df_new_nav
+    df_dif_notional = (-1) * (df_new_notional - df_new_nav)
     df_qt_dif = df_dif_notional / df_prices_d0
 
     return df_qt_dif
