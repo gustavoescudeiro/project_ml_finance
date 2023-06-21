@@ -1,5 +1,6 @@
 from Data.reading_data import stocks_brazil
 from Signal.momentum import get_momentum_signal
+from Signal.buy_and_hold import get_buy_and_hold_signal
 from Allocator.one_over_n import get_weights_one_over_n
 from Allocator.HRP import get_weights_hrp
 import pandas as pd
@@ -30,7 +31,7 @@ df_weights = get_weights_one_over_n(df_signal)
 
 
 # Definindo frequencia do rebelanceamento d -> diaria, w -> semanal, m -> mensal, y -> anual
-freq = "d"
+freq = "m"
 dict_freq = {
             "d": ["d", "w", "m", "y"],
             "w": ["w", "m", "y"],
@@ -76,9 +77,10 @@ list_total_dates = list(df_prices.index)
 while date_index <= df_prices.index.max():
 
     df_temp = df_prices[df_prices.index <= date_index]  # df temporario com precos para usarmos para computar os sinais
-    df_signal = get_momentum_signal(df=df_temp)  # computando sinal
-    df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
-    # df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal)
+    # df_signal = get_momentum_signal(df=df_temp)  # computando sinal
+    df_signal = get_buy_and_hold_signal(df=df_temp)  # computando sinal
+    # df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
+    df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal)
 
 
     # computando backtest quando nao eh data de rebalanceamento
@@ -123,7 +125,7 @@ while date_index <= df_prices.index.max():
 
 
     # checando se ha pesos computados, para iniciarmos o backtest
-    if df_weights.T.isnull().all().iloc[0] == False and first_date_already_happened == False:
+    if df_weights.T.isnull().all().iloc[0] == False and first_date_already_happened == False and df_weights.sum(axis=1).iloc[0] != 0:
         df_notional = df_weights * initial_notional
         df_qt = df_notional / df_temp.tail(1)
         first_date_already_happened = True
@@ -180,6 +182,6 @@ df_return = df_prices.pct_change() * df_weights_adjusted
 df_return["total_return"] = df_return.sum(axis = 1)
 df_return["cumulative_return"] = (1 + df_return["total_return"]).cumprod() - 1
 
-df_return.to_excel(f"analise_estrategia_{freq}.xlsx")
+df_return.to_excel(f"analise_estrategia_{freq}_hrp.xlsx")
 
 
