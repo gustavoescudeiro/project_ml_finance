@@ -20,7 +20,7 @@ def rebalance(current_total_aum = None, df_new_weights = None, df_prices_d0 = No
 
 # Definindo dataframe com precos:
 df_prices = stocks_brazil()
-df_prices = df_prices[df_prices.index >= pd.to_datetime("2020-01-01")]
+# df_prices = df_prices[df_prices.index >= pd.to_datetime("2020-01-01")]
 
 
 # Calculando sinal de momentum a partir do dataframe com precos
@@ -72,7 +72,7 @@ first_date_already_happened = False
 date_index = df_prices.index.min()
 list_total_dates = list(df_prices.index)
 
-
+date_index = pd.to_datetime("2015-01-02")
 
 while date_index <= df_prices.index.max():
 
@@ -181,6 +181,8 @@ df_weights_adjusted = df_weights_adjusted * df_signal
 df_return = df_prices.pct_change() * df_weights_adjusted
 df_return["total_return"] = df_return.sum(axis = 1)
 df_return["cumulative_return"] = (1 + df_return["total_return"]).cumprod() - 1
+
+
 
 df_return.to_excel(f"analise_estrategia_{freq}_hrp.xlsx")
 
