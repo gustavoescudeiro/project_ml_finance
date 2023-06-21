@@ -1,16 +1,19 @@
 from Data.reading_data import stocks_brazil
 from Signal.momentum import get_momentum_signal
 from Allocator.one_over_n import get_weights_one_over_n
+from Allocator.HRP import get_weights_hrp
 import pandas as pd
 import numpy as np
 import datetime
 
-def rebalance(current_total_aum = None, df_new_weights = None, df_prices_d0 = None, df_new_nav = None):
+def rebalance(current_total_aum = None, df_new_weights = None, df_prices_d0 = None, df_current_qt = None):
 
 
     df_new_notional = df_new_weights * current_total_aum
-    df_dif_notional = (-1) * (df_new_notional - df_new_nav)
-    df_qt_dif = df_dif_notional / df_prices_d0
+    df_new_qt = df_new_notional / df_prices_d0
+    df_qt_dif = df_new_qt - df_current_qt
+
+
 
     return df_qt_dif
 
@@ -27,7 +30,7 @@ df_weights = get_weights_one_over_n(df_signal)
 
 
 # Definindo frequencia do rebelanceamento d -> diaria, w -> semanal, m -> mensal, y -> anual
-freq = "m"
+freq = "d"
 dict_freq = {
             "d": ["d", "w", "m", "y"],
             "w": ["w", "m", "y"],
@@ -55,8 +58,8 @@ df_return = df_prices.pct_change()
 
 
 initial_date = rebal_index[0]
-value = 100000 # valor financeiro
-initial_value = 100000
+initial_value = 0 # valor financeiro
+initial_notional = 100000
 new_value = 0
 dict_qt = {}
 dict_notional = {}
@@ -75,14 +78,15 @@ while date_index <= df_prices.index.max():
     df_temp = df_prices[df_prices.index <= date_index]  # df temporario com precos para usarmos para computar os sinais
     df_signal = get_momentum_signal(df=df_temp)  # computando sinal
     df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
+    # df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal)
 
 
     # computando backtest quando nao eh data de rebalanceamento
     if first_date_already_happened == True and date_index not in rebal_index:
-        print(f"aplicando retonros em {date_index}")
+        print(f"aplicando retornos em {date_index}")
         current_index = list_total_dates.index(date_index)
         previous_date = list_total_dates[current_index - 1]
-        # acessando a notional do dia anterior
+        # acessando o notional do dia anterior
         df_notional_t1 = dict_notional[previous_date]
         df_notional = df_notional_t1.reset_index(drop=True) * (1 + df_temp.pct_change().tail(1).reset_index(drop=True))
         df_notional["Date"] = date_index
@@ -103,22 +107,24 @@ while date_index <= df_prices.index.max():
         df_notional = df_notional_t1.reset_index(drop=True) * (1 + df_temp.pct_change().tail(1).reset_index(drop=True))
         df_notional["Date"] = date_index
         df_notional.set_index(["Date"], inplace = True)
-        dict_notional[date_index] = df_notional
-        last_total_aum = dict_nav[previous_date]
+        # dict_notional[date_index] = df_notional
+        # last_total_aum = dict_nav[previous_date]
+        current_total_aum = df_notional.sum(axis=1).iloc[0]
         # rebalanceando
-        df_qt_trade = rebalance(current_total_aum=last_total_aum, df_new_weights=df_weights,
-                                df_prices_d0=df_temp.tail(1), df_new_nav = df_notional)
         # acessando a quantidade do dia anterior e replicando ate ter rebalanceamento
         df_qt_t1 = dict_qt[previous_date].reset_index(drop=True)
         df_qt_t1["Date"] = date_index
         df_qt_t1.set_index(["Date"], inplace=True)
+        df_qt_trade = rebalance(current_total_aum=current_total_aum, df_new_weights=df_weights,
+                                df_prices_d0=df_temp.tail(1), df_current_qt = df_qt_t1)
         dict_qt[date_index] = df_qt_t1 + df_qt_trade
+        dict_notional[date_index] = (df_qt_t1 + df_qt_trade) * df_temp.tail(1)
         print(f"qt trade: {df_qt_trade.sum(axis=1)}")
 
 
     # checando se ha pesos computados, para iniciarmos o backtest
     if df_weights.T.isnull().all().iloc[0] == False and first_date_already_happened == False:
-        df_notional = df_weights * initial_value
+        df_notional = df_weights * initial_notional
         df_qt = df_notional / df_temp.tail(1)
         first_date_already_happened = True
         print(f"iniciou em {date_index}")
@@ -126,8 +132,8 @@ while date_index <= df_prices.index.max():
         dict_notional[date_index] = df_notional
 
     if first_date_already_happened == True:
-        initial_value += df_notional.sum(axis=1).iloc[0]
-        dict_nav[date_index] = initial_value
+        # initial_value += df_notional.sum(axis=1).iloc[0]
+        dict_nav[date_index] = df_notional.sum(axis=1).iloc[0]
 
     # identifcando proxima data
     current_index = list_total_dates.index(date_index)
@@ -146,19 +152,22 @@ df_qt = pd.concat(dict_qt.values())
 df_signal = pd.concat(dict_signal.values())
 df_nav = pd.DataFrame(dict_nav.items())
 
-df_notional = df_qt * df_prices
+
 
 df_notional["total_pos"] = df_notional[df_notional > 0].sum(axis=1)
 df_notional["total_neg"] = df_notional[df_notional < 0].sum(axis=1)
 
 df_weights_adjusted = df_notional.copy()
 df_weights_adjusted = df_weights_adjusted[df_weights_adjusted["total_pos"]!=0]
+
 # Funcao para chegar no peso em %
 for column in df_weights_adjusted.columns:
-    mask_pos = df_weights_adjusted[column] > 0
-    df_weights_adjusted.loc[mask_pos, column] = df_weights_adjusted[column]/df_weights_adjusted["total_pos"]
-    mask_neg = df_weights_adjusted[column] < 0
-    df_weights_adjusted.loc[mask_neg, column] = df_weights_adjusted[column] / df_weights_adjusted["total_neg"]
+    if df_notional["total_pos"].sum() != 0:
+        mask_pos = df_weights_adjusted[column] > 0
+        df_weights_adjusted.loc[mask_pos, column] = df_weights_adjusted[column]/df_weights_adjusted["total_pos"]
+    if df_notional["total_neg"].sum() != 0:
+        mask_neg = df_weights_adjusted[column] < 0
+        df_weights_adjusted.loc[mask_neg, column] = df_weights_adjusted[column] / df_weights_adjusted["total_neg"]
 
 df_weights_adjusted.drop(["total_pos", "total_neg"], axis=1, inplace = True)
 df_notional.drop(["total_pos", "total_neg"], axis=1, inplace = True)
