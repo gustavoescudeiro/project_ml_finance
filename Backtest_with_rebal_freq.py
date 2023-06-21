@@ -12,6 +12,11 @@ def rebalance(current_total_aum = None, df_new_weights = None, df_prices_d0 = No
 
     df_new_notional = df_new_weights * current_total_aum
     df_new_qt = df_new_notional / df_prices_d0
+    # Adicionando colunas com 0 caso estejam com novo peso definido (entrando pela primeira vez)
+    list_new_assets = list(set(df_new_weights) - set(df_current_qt))
+    if len(list_new_assets) > 0:
+        for asset in list_new_assets:
+            df_current_qt[asset] = 0
     df_qt_dif = df_new_qt - df_current_qt
 
 
@@ -73,14 +78,17 @@ date_index = df_prices.index.min()
 list_total_dates = list(df_prices.index)
 
 date_index = pd.to_datetime("2015-01-02")
+window = 60
 
 while date_index <= df_prices.index.max():
 
     df_temp = df_prices[df_prices.index <= date_index]  # df temporario com precos para usarmos para computar os sinais
+    df_temp = df_temp.iloc[-window:]
+    df_temp = df_temp.dropna(axis =1)
     # df_signal = get_momentum_signal(df=df_temp)  # computando sinal
     df_signal = get_buy_and_hold_signal(df=df_temp)  # computando sinal
-    # df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
-    df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal)
+    df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
+    # df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal, window=window)
 
 
     # computando backtest quando nao eh data de rebalanceamento
@@ -184,6 +192,6 @@ df_return["cumulative_return"] = (1 + df_return["total_return"]).cumprod() - 1
 
 
 
-df_return.to_excel(f"analise_estrategia_{freq}_hrp.xlsx")
+df_return.to_excel(f"analise_estrategia_{freq}.xlsx")
 
 
