@@ -15,3 +15,17 @@ def stocks_brazil():
     df_prices.columns = [x.split("-")[0].strip() for x in df_prices.columns]
 
     return df_prices
+
+
+def multiclass():
+
+    # Lendo df
+    df_prices = pd.read_parquet("dados_aula.parquet")
+    df_prices = df_prices.reset_index(drop=False)
+    df_prices.rename(columns={"DATE": "Date"}, inplace=True)
+    df_prices["Date"] = pd.to_datetime(df_prices["Date"])
+    df_prices.set_index(["Date"], inplace=True)
+    df_prices.drop(["DOGEUSD"],axis = 1, inplace = True)
+
+
+    return df_prices
