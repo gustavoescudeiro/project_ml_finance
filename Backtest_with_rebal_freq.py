@@ -1,4 +1,4 @@
-from Data.reading_data import stocks_brazil
+from Data.reading_data import stocks_brazil, multiclass
 from Signal.momentum import get_momentum_signal
 from Signal.buy_and_hold import get_buy_and_hold_signal
 from Allocator.one_over_n import get_weights_one_over_n
@@ -24,15 +24,11 @@ def rebalance(current_total_aum = None, df_new_weights = None, df_prices_d0 = No
     return df_qt_dif
 
 # Definindo dataframe com precos:
-df_prices = stocks_brazil()
-# df_prices = df_prices[df_prices.index >= pd.to_datetime("2020-01-01")]
+# df_prices = stocks_brazil()
+df_prices = multiclass()
 
 
-# Calculando sinal de momentum a partir do dataframe com precos
-df_signal = get_momentum_signal(df = df_prices, window = 180, percentile = 0.25)
 
-# Calculando pesos a partir dos sinais (1/n)
-df_weights = get_weights_one_over_n(df_signal)
 
 
 # Definindo frequencia do rebelanceamento d -> diaria, w -> semanal, m -> mensal, y -> anual
@@ -77,7 +73,7 @@ first_date_already_happened = False
 date_index = df_prices.index.min()
 list_total_dates = list(df_prices.index)
 
-date_index = pd.to_datetime("2015-01-02")
+date_index = pd.to_datetime("2020-06-29")
 window = 60
 
 while date_index <= df_prices.index.max():
@@ -190,8 +186,13 @@ df_return = df_prices.pct_change() * df_weights_adjusted
 df_return["total_return"] = df_return.sum(axis = 1)
 df_return["cumulative_return"] = (1 + df_return["total_return"]).cumprod() - 1
 
+with pd.ExcelWriter(f"analise_estrategia_{freq}.xlsx") as writer:
+    # use to_excel function and specify the sheet_name and index
+    # to store the dataframe in specified sheet
+    df_return.to_excel(writer, sheet_name="portfolio_returns", index=True)
+    df_weights_adjusted.to_excel(writer, sheet_name="portfolio_weigths", index=True)
 
 
-df_return.to_excel(f"analise_estrategia_{freq}.xlsx")
+
 
 
