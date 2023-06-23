@@ -17,6 +17,8 @@ def rebalance(current_total_aum = None, df_new_weights = None, df_prices_d0 = No
     if len(list_new_assets) > 0:
         for asset in list_new_assets:
             df_current_qt[asset] = 0
+    df_new_qt.fillna(0,inplace = True)
+    df_current_qt.fillna(0,inplace = True)
     df_qt_dif = df_new_qt - df_current_qt
 
 
@@ -24,8 +26,8 @@ def rebalance(current_total_aum = None, df_new_weights = None, df_prices_d0 = No
     return df_qt_dif
 
 # Definindo dataframe com precos:
-# df_prices = stocks_brazil()
-df_prices = multiclass()
+df_prices = stocks_brazil()
+# df_prices = multiclass()
 
 
 
@@ -73,7 +75,7 @@ first_date_already_happened = False
 date_index = df_prices.index.min()
 list_total_dates = list(df_prices.index)
 
-date_index = pd.to_datetime("2020-06-29")
+date_index = pd.to_datetime("2021-01-04")
 window = 60
 
 while date_index <= df_prices.index.max():
@@ -81,10 +83,10 @@ while date_index <= df_prices.index.max():
     df_temp = df_prices[df_prices.index <= date_index]  # df temporario com precos para usarmos para computar os sinais
     df_temp = df_temp.iloc[-window:]
     df_temp = df_temp.dropna(axis =1)
-    # df_signal = get_momentum_signal(df=df_temp)  # computando sinal
-    df_signal = get_buy_and_hold_signal(df=df_temp)  # computando sinal
-    # df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
-    df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal, window=window)
+    df_signal = get_momentum_signal(df=df_temp, window=window, percentile = 0.1)  # computando sinal
+    # df_signal = get_buy_and_hold_signal(df=df_temp)  # computando sinal
+    df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
+    # df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal, window=window)
 
 
     # computando backtest quando nao eh data de rebalanceamento
@@ -182,7 +184,7 @@ df_signal = df_notional.abs()/df_notional
 
 df_weights_adjusted = df_weights_adjusted * df_signal
 
-df_return = df_maybe_correct_cum_ret = (df_weights_adjusted * ((1 + df_return).cumprod() - 1))
+df_return = df_maybe_correct_cum_ret = (df_weights_adjusted * ((1 + df_return[df_return.index >= df_weights_adjusted.index.min()]).cumprod() - 1))
 df_return["cumulative_total_return"] = df_return.sum(axis = 1)
 
 
