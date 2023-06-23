@@ -83,8 +83,8 @@ while date_index <= df_prices.index.max():
     df_temp = df_temp.dropna(axis =1)
     # df_signal = get_momentum_signal(df=df_temp)  # computando sinal
     df_signal = get_buy_and_hold_signal(df=df_temp)  # computando sinal
-    df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
-    # df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal, window=window)
+    # df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
+    df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal, window=window)
 
 
     # computando backtest quando nao eh data de rebalanceamento
@@ -182,15 +182,18 @@ df_signal = df_notional.abs()/df_notional
 
 df_weights_adjusted = df_weights_adjusted * df_signal
 
-df_return = df_prices.pct_change() * df_weights_adjusted
-df_return["total_return"] = df_return.sum(axis = 1)
-df_return["cumulative_return"] = (1 + df_return["total_return"]).cumprod() - 1
+df_return = df_maybe_correct_cum_ret = (df_weights_adjusted * ((1 + df_return).cumprod() - 1))
+df_return["cumulative_total_return"] = df_return.sum(axis = 1)
 
-with pd.ExcelWriter(f"analise_estrategia_{freq}.xlsx") as writer:
+
+
+
+with pd.ExcelWriter(f"analise_estrategia_{freq}_hrp.xlsx") as writer:
     # use to_excel function and specify the sheet_name and index
     # to store the dataframe in specified sheet
     df_return.to_excel(writer, sheet_name="portfolio_returns", index=True)
     df_weights_adjusted.to_excel(writer, sheet_name="portfolio_weigths", index=True)
+
 
 
 
