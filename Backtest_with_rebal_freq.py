@@ -1,4 +1,4 @@
-from Data.reading_data import stocks_brazil, multiclass
+from Data.reading_data import stocks_brazil, multiclass, etfs_b3
 from Signal.momentum import get_momentum_signal
 from Signal.buy_and_hold import get_buy_and_hold_signal
 from Allocator.one_over_n import get_weights_one_over_n
@@ -26,8 +26,9 @@ def rebalance(current_total_aum = None, df_new_weights = None, df_prices_d0 = No
     return df_qt_dif
 
 # Definindo dataframe com precos:
-df_prices = stocks_brazil()
+# df_prices = stocks_brazil()
 # df_prices = multiclass()
+df_prices = etfs_b3()
 
 
 
@@ -75,7 +76,7 @@ first_date_already_happened = False
 date_index = df_prices.index.min()
 list_total_dates = list(df_prices.index)
 
-date_index = pd.to_datetime("2015-01-02")
+date_index = pd.to_datetime("2021-04-01")
 window = 60
 
 while date_index <= df_prices.index.max():
@@ -85,8 +86,8 @@ while date_index <= df_prices.index.max():
     df_temp = df_temp.dropna(axis =1)
     # df_signal = get_momentum_signal(df=df_temp, window=window, percentile = 0.1)  # computando sinal
     df_signal = get_buy_and_hold_signal(df=df_temp)  # computando sinal
-    # df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
-    df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal, window=window)
+    df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
+    # df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal, window=window)
 
 
     # computando backtest quando nao eh data de rebalanceamento
@@ -190,11 +191,7 @@ df_notional.drop(["total_pos", "total_neg"], axis=1, inplace = True)'''
 print("a")
 
 
-with pd.ExcelWriter(f"analise_estrategia_{freq}_hrp.xlsx") as writer:
-    # use to_excel function and specify the sheet_name and index
-    # to store the dataframe in specified sheet
-    df_return.to_excel(writer, sheet_name="portfolio_returns", index=True)
-    df_weights_adjusted.to_excel(writer, sheet_name="portfolio_weigths", index=True)
+
 
 
 
