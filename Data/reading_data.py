@@ -29,3 +29,17 @@ def multiclass():
 
 
     return df_prices
+
+
+def etfs_b3():
+
+    # Lendo df
+    df_prices = pd.read_pickle("etfs.pkl")
+    df_prices = df_prices.reset_index(drop=False)
+    df_prices.rename(columns={"date": "Date"}, inplace=True)
+    df_prices["Date"] = pd.to_datetime(df_prices["Date"])
+    df_prices.set_index(["Date"], inplace=True)
+
+
+
+    return df_prices
