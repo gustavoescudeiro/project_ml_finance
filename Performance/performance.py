@@ -106,8 +106,9 @@ def tail_ratio_func(returns):
     return (ep.tail_ratio(returns))
 
 
-def summary_perfomance(returns, risk_free, frequency = 'Y'):
-    first_day_year = returns.loc[returns.groupby(returns.index.to_period(frequency)).apply(lambda x: x.index.min())].index
+def summary_perfomance(returns, risk_free, frequency = None):
+
+
     dic_cum_returns = {}
     dic_sharpe_ratio = {}
     dic_annual_returns = {}
@@ -115,17 +116,31 @@ def summary_perfomance(returns, risk_free, frequency = 'Y'):
     dic_kurtosis = {}
     dic_skew = {}
     dic_tail_ratio = {}
+    if frequency is not None:
+        first_day_year = returns.loc[returns.groupby(returns.index.to_period(frequency)).apply(lambda x: x.index.min())].index
 
-    for i in first_day_year:
+
+        for i in first_day_year:
+            df_filtrado = returns.pct_change().copy()
+            df_filtrado = df_filtrado[df_filtrado.index >= i]
+            dic_cum_returns[i] = cum_returns(df_filtrado)
+            dic_annual_returns[i] = annual_returns(df_filtrado)
+            dic_annual_vol[i] = annual_vol(df_filtrado)
+            dic_sharpe_ratio[i] = func_sharpe_ratio(df_filtrado, risk_free)
+            dic_kurtosis[i] = kurtosis_func(df_filtrado)
+            dic_skew[i] = skew_func(df_filtrado)
+            dic_tail_ratio[i] = tail_ratio_func(df_filtrado)
+    else:
+        first_day_year = returns.groupby(returns.index.to_period("Y")).apply(lambda x: x.index.min()).max()
         df_filtrado = returns.pct_change().copy()
-        df_filtrado = df_filtrado[df_filtrado.index >= i]
-        dic_cum_returns[i] = cum_returns(df_filtrado)
-        dic_annual_returns[i] = annual_returns(df_filtrado)
-        dic_annual_vol[i] = annual_vol(df_filtrado)
-        dic_sharpe_ratio[i] = func_sharpe_ratio(df_filtrado, risk_free)
-        dic_kurtosis[i] = kurtosis_func(df_filtrado)
-        dic_skew[i] = skew_func(df_filtrado)
-        dic_tail_ratio[i] = tail_ratio_func(df_filtrado)
+        dic_cum_returns[first_day_year] = cum_returns(df_filtrado)
+        dic_annual_returns[first_day_year] = annual_returns(df_filtrado)
+        dic_annual_vol[first_day_year] = annual_vol(df_filtrado)
+        dic_sharpe_ratio[first_day_year] = func_sharpe_ratio(df_filtrado, risk_free)
+        dic_kurtosis[first_day_year] = kurtosis_func(df_filtrado)
+        dic_skew[first_day_year] = skew_func(df_filtrado)
+        dic_tail_ratio[first_day_year] = tail_ratio_func(df_filtrado)
+
 
     df_cum_returns = pd.DataFrame(list(dic_cum_returns.items()), columns=['date', 'value'])
     df_cum_returns['statistic'] = 'Cummulative return'
