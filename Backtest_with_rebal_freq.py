@@ -1,4 +1,4 @@
-from Data.reading_data import stocks_brazil, multiclass, etfs_b3
+from Data.reading_data import stocks_brazil, multiclass, etfs_b3, acoes_selecionadas
 from Signal.momentum import get_momentum_signal
 from Signal.buy_and_hold import get_buy_and_hold_signal
 from Allocator.one_over_n import get_weights_one_over_n
@@ -28,7 +28,8 @@ def rebalance(current_total_aum = None, df_new_weights = None, df_prices_d0 = No
 # Definindo dataframe com precos:
 # df_prices = stocks_brazil()
 # df_prices = multiclass()
-df_prices = etfs_b3()
+# df_prices = etfs_b3()
+df_prices = acoes_selecionadas()
 
 
 
@@ -76,9 +77,9 @@ first_date_already_happened = False
 date_index = df_prices.index.min()
 list_total_dates = list(df_prices.index)
 
-date_index = pd.to_datetime("2021-04-01")
+# date_index = pd.to_datetime("2016-01-04")
 window = 60
-
+date_index = pd.to_datetime("2017-01-02")
 while date_index <= df_prices.index.max():
 
     df_temp = df_prices[df_prices.index <= date_index]  # df temporario com precos para usarmos para computar os sinais
@@ -86,8 +87,8 @@ while date_index <= df_prices.index.max():
     df_temp = df_temp.dropna(axis =1)
     # df_signal = get_momentum_signal(df=df_temp, window=window, percentile = 0.1)  # computando sinal
     df_signal = get_buy_and_hold_signal(df=df_temp)  # computando sinal
-    df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
-    # df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal, window=window)
+    # df_weights = get_weights_one_over_n(df_signal.tail(1)).tail(1)
+    df_weights = get_weights_hrp(df_prices = df_temp, df_signal=df_signal, window=window, model = "HERC")
 
 
     # computando backtest quando nao eh data de rebalanceamento
@@ -163,8 +164,8 @@ df_nav = pd.DataFrame(dict_nav.items())
 
 
 
-df_notional["total_pos"] = df_notional[df_notional > 0].sum(axis=1)
-df_notional["total_neg"] = df_notional[df_notional < 0].sum(axis=1)
+# df_notional["total_pos"] = df_notional[df_notional > 0].sum(axis=1)
+# df_notional["total_neg"] = df_notional[df_notional < 0].sum(axis=1)
 
 '''df_weights_adjusted = df_notional.copy()
 df_weights_adjusted = df_weights_adjusted[df_weights_adjusted["total_pos"]!=0]
@@ -187,6 +188,10 @@ df_notional.drop(["total_pos", "total_neg"], axis=1, inplace = True)'''
 
 # df_return = df_maybe_correct_cum_ret = (df_weights_adjusted * ((1 + df_return[df_return.index >= df_weights_adjusted.index.min()]).cumprod() - 1))
 # df_return["cumulative_total_return"] = df_return.sum(axis = 1)
+
+df_weights = df_notional.div(df_notional.sum(axis=1), axis=0)
+
+df_notional.to_pickle("long_only_herc.pkl")
 
 print("a")
 
