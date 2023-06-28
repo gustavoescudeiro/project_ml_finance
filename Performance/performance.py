@@ -187,8 +187,11 @@ def summary_perfomance(returns, risk_free, frequency = None):
     summary.columns.rename('values', level=0)
     summary.columns = summary.columns.to_flat_index()
 
-    summary.columns = [str(date)[21:28] for date in summary.columns.to_list()]
+    if frequency is not None:
+        summary.columns = [date[1].to_period(frequency) for date in summary.columns.to_list()]
 
+    else:
+        summary.columns = ["total"]
     return (summary)
 
 
