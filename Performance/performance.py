@@ -117,12 +117,15 @@ def summary_perfomance(returns, risk_free, frequency = None):
     dic_skew = {}
     dic_tail_ratio = {}
     if frequency is not None:
-        first_day_year = returns.loc[returns.groupby(returns.index.to_period(frequency)).apply(lambda x: x.index.min())].index
+        grouped = returns.groupby(pd.Grouper(freq=frequency))
+        # groups to a list of dataframes with list comprehension
+        list_dfs = [group for _, group in grouped]
 
 
-        for i in first_day_year:
-            df_filtrado = returns.pct_change().copy()
-            df_filtrado = df_filtrado[df_filtrado.index >= i]
+        for df_filtrado in list_dfs:
+            df_filtrado = df_filtrado.pct_change()
+            i = df_filtrado.groupby(df_filtrado.index.to_period(frequency)).apply(lambda x: x.index.min()).max()
+
             dic_cum_returns[i] = cum_returns(df_filtrado)
             dic_annual_returns[i] = annual_returns(df_filtrado)
             dic_annual_vol[i] = annual_vol(df_filtrado)
@@ -148,20 +151,20 @@ def summary_perfomance(returns, risk_free, frequency = None):
     df_cum_returns['value'] = df_cum_returns['value'] * 100
     df_cum_returns['value'] = df_cum_returns['value'].apply(lambda x: "{0:.2f}%".format(x))
 
-    df_annual_returns = pd.DataFrame(list(dic_annual_returns.items()), columns=['date', 'value'])
+    '''df_annual_returns = pd.DataFrame(list(dic_annual_returns.items()), columns=['date', 'value'])
     df_annual_returns['statistic'] = 'Annual return'
     # df_annual_returns['value'] = df_annual_returns['value'].apply(lambda x: round(x, 2))
     df_annual_returns['value'] = df_annual_returns['value'] * 100
-    df_annual_returns['value'] = df_annual_returns['value'].apply(lambda x: "{0:.2f}%".format(x))
+    df_annual_returns['value'] = df_annual_returns['value'].apply(lambda x: "{0:.2f}%".format(x))'''
 
     df_annual_vol = pd.DataFrame(list(dic_annual_vol.items()), columns=['date', 'value'])
-    df_annual_vol['statistic'] = 'Annual Volatility'
+    df_annual_vol['statistic'] = 'Annualized Volatility'
     # df_annual_vol['value'] = df_annual_vol['value'].apply(lambda x: round(x, 2))
     df_annual_vol['value'] = df_annual_vol['value'] * 100
     df_annual_vol['value'] = df_annual_vol['value'].apply(lambda x: "{0:.2f}%".format(x))
 
     df_sharpe_ratio = pd.DataFrame(list(dic_sharpe_ratio.items()), columns=['date', 'value'])
-    df_sharpe_ratio['statistic'] = 'Annual Sharpe Ratio'
+    df_sharpe_ratio['statistic'] = 'Annualized Sharpe Ratio'
     df_sharpe_ratio['value'] = df_sharpe_ratio['value'].apply(lambda x: round(x, 2))
 
     df_kurtosis = pd.DataFrame(list(dic_kurtosis.items()), columns=['date', 'value'])
@@ -177,7 +180,7 @@ def summary_perfomance(returns, risk_free, frequency = None):
     df_tail_ratio['value'] = df_tail_ratio['value'].apply(lambda x: round(x, 2))
 
     df_stats = pd.concat([df_cum_returns,
-                          df_annual_returns,
+                          # df_annual_returns,
                           df_annual_vol,
                           df_sharpe_ratio,
                           df_kurtosis,
